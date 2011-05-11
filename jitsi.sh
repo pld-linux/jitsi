@@ -21,12 +21,15 @@ for jar in sc-launcher.jar util.jar; do
 	CLASSPATH=$CLASSPATH:sc-bundles/$jar
 done
 
-# extra JVM options
+# extra options
 OPTIONS="\
 	-Djna.library.path=$LIBDIR \
 	-Djava.library.path=$LIBDIR \
 	-Dfelix.config.properties=file:lib/felix.client.run.properties \
 	-Djava.util.logging.config.file=lib/logging.properties \
 "
+
+# set add LIBPATH to LD_LIBRARY_PATH for any sc natives (e.g. jmf .so's)
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LIBDIR
 
 run "$@"
