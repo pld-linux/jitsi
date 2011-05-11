@@ -13,6 +13,7 @@ URL:		http://www.jitsi.org/
 Source0:	http://download.jitsi.org/jitsi/src/sip-communicator-src-%{version}-beta1-nightly.build.%{subver}.zip
 # Source0-md5:	7f91e55a23c736e517471f80b4602513
 Source1:	%{name}.desktop
+Source2:	%{name}.sh
 BuildRequires:	ant
 BuildRequires:	ant-nodeps
 BuildRequires:	jdk
@@ -36,21 +37,9 @@ Public License.
 %prep
 %setup -q -n sip-communicator
 
-# startscript
-cat > %{name}.sh << EOF
-#!/bin/sh
-
-java -Dfelix.config.properties=file:%{_javadir}/sip-communicator/lib/felix.client.run.properties \
-     -Djava.util.logging.config.file=%{_javadir}/sip-communicator/lib/logging.properties \
-       org.apache.felix.main.Main
-
-#java -jar %{_javadir}/%{name}/%{name}-%{version}.jar
-
-EOF
-
 # docs
-install -D -p resources/install/doc/readme.txt README
-install -D -p resources/install/doc/License.txt LICENSE
+cp -p resources/install/doc/readme.txt README
+cp -p resources/install/doc/License.txt LICENSE
 
 %build
 # source code not US-ASCII
@@ -60,35 +49,31 @@ export LC_ALL=en_US
 %install
 rm -rf $RPM_BUILD_ROOT
 install -d $RPM_BUILD_ROOT%{_javadir}/%{name}
-#install -m 755 %{name}-%{version}.jar $RPM_BUILD_ROOT%{_javadir}/sip-communicator/
 
-install -d $RPM_BUILD_ROOT%{_javadir}/sip-communicator/sc-bundles
-cp -p sc-bundles/*.jar $RPM_BUILD_ROOT%{_javadir}/sip-communicator/sc-bundles/
+install -d $RPM_BUILD_ROOT%{_javadir}/%{name}/sc-bundles
+cp -p sc-bundles/*.jar $RPM_BUILD_ROOT%{_javadir}/%{name}/sc-bundles
 
-install -d $RPM_BUILD_ROOT%{_javadir}/sip-communicator/sc-bundles/os-specific
-install -d $RPM_BUILD_ROOT%{_javadir}/sip-communicator/sc-bundles/os-specific/linux
-cp -p sc-bundles/os-specific/linux/*.jar $RPM_BUILD_ROOT%{_javadir}/sip-communicator/sc-bundles/os-specific/linux/
+install -d $RPM_BUILD_ROOT%{_javadir}/%{name}/sc-bundles/os-specific
+install -d $RPM_BUILD_ROOT%{_javadir}/%{name}/sc-bundles/os-specific/linux
+cp -p sc-bundles/os-specific/linux/*.jar $RPM_BUILD_ROOT%{_javadir}/%{name}/sc-bundles/os-specific/linux
 
-install -d $RPM_BUILD_ROOT%{_javadir}/sip-communicator/lib
-cp -p lib/*.jar $RPM_BUILD_ROOT%{_javadir}/sip-communicator/lib/
+install -d $RPM_BUILD_ROOT%{_javadir}/%{name}/lib
+cp -p lib/*.jar $RPM_BUILD_ROOT%{_javadir}/%{name}/lib
 
-install -d $RPM_BUILD_ROOT%{_javadir}/sip-communicator/lib/os-specific/linux
-cp -p lib/os-specific/linux/*.jar $RPM_BUILD_ROOT%{_javadir}/sip-communicator/lib/os-specific/linux/
+install -d $RPM_BUILD_ROOT%{_javadir}/%{name}/lib/os-specific/linux
+cp -p lib/os-specific/linux/*.jar $RPM_BUILD_ROOT%{_javadir}/%{name}/lib/os-specific/linux
 
-## arch dependend libs
+## arch dependant libs
 install -d $RPM_BUILD_ROOT%{_libdir}
-%ifarch %{ix86}
-#install -d -m 755 $RPM_BUILD_ROOT%{_javadir}/sip-communicator/lib/native/linux
-#install -m 755 lib/native/linux/* $RPM_BUILD_ROOT%{_javadir}/sip-communicator/lib/native/linux/
+%ifarch %{x8664}
 install -p lib/native/linux-64/* $RPM_BUILD_ROOT%{_libdir}
-%else
-#install -d -m 755 $RPM_BUILD_ROOT%{_javadir}/sip-communicator/lib/native/linux
+%endif
+%ifarch %{ix86}
 install -p lib/native/linux/* $RPM_BUILD_ROOT%{_libdir}
-#install -m 755 lib/native/linux/* $RPM_BUILD_ROOT%{_javadir}/sip-communicator/lib/native/linux/
 %endif
 
 install -d $RPM_BUILD_ROOT%{_bindir}
-install -p %{name}.sh $RPM_BUILD_ROOT%{_bindir}
+install -p %{SOURCE2} $RPM_BUILD_ROOT%{_bindir}/%{name}
 
 # Icon
 install -D -p resources/install/linux/sc-logo.png $RPM_BUILD_ROOT%{_pixmapsdir}/%{name}.png
@@ -104,10 +89,12 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(644,root,root,755)
 %doc README LICENSE
-%attr(755,root,root) %{_bindir}/*
-%{_libdir}/*
+%attr(755,root,root) %{_bindir}/%{name}
+%attr(755,root,root) %{_libdir}/lib*.so
+%attr(755,root,root) %{_libdir}/mozembed-linux-gtk1.2
+%attr(755,root,root) %{_libdir}/mozembed-linux-gtk2
 %dir %{_javadir}/%{name}
-#%{_javadir}/%{name}/*
+%{_javadir}/%{name}/*
 %{_desktopdir}/%{name}.desktop
 %{_pixmapsdir}/%{name}.png
 %{_pixmapsdir}/%{name}.svg
