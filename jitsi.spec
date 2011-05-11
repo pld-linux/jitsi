@@ -1,13 +1,13 @@
 # TODO
 # - ensure all is really built
-# - cc/cflags for native build
+# - cc/cflags for native build (find source first (currently prebuild libs used))
 %define		subver	3464
-%define		rel		0.1
+%define		rel		0.9
 Summary:	A Java VoIP and Instant Messaging client
 Name:		jitsi
 Version:	1.0
 Release:	0.%{subver}.%{rel}
-License:	LGPL
+License:	LGPL 2.1
 Group:		Applications/Communications
 URL:		http://www.jitsi.org/
 Source0:	http://download.jitsi.org/jitsi/src/sip-communicator-src-%{version}-beta1-nightly.build.%{subver}.zip
@@ -17,10 +17,12 @@ Source2:	%{name}.sh
 BuildRequires:	ant
 BuildRequires:	ant-nodeps
 BuildRequires:	jdk
+BuildRequires:	sed >= 4.0
 BuildRequires:	unzip
 %if %(locale -a | grep -q '^en_US$'; echo $?)
 BuildRequires:	glibc-localedb-all
 %endif
+Requires:	jpackage-utils
 Obsoletes:	sip-communicator
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
@@ -37,6 +39,19 @@ Public License.
 %prep
 %setup -q -n sip-communicator
 
+install -p %{SOURCE2} .
+%if "%{_lib}" != "lib"
+%{__sed} -i -e 's,/usr/lib,%{_libdir},' %{name}.sh
+%endif
+
+# gtk+1
+%{__rm} -v lib/native/linux*/*mozembed*gtk1.2*
+
+# libgtkembedmoz.so not satisfiable right now
+# too old xulrunner?, xulrunner-libs 1.8 contained it
+%{__rm} -v lib/native/linux*/libmozembed-linux-gtk2.so
+%{__rm} -v lib/native/linux*/mozembed-linux-gtk2
+
 # docs
 cp -p resources/install/doc/readme.txt README
 cp -p resources/install/doc/License.txt LICENSE
@@ -48,39 +63,30 @@ export LC_ALL=en_US
 
 %install
 rm -rf $RPM_BUILD_ROOT
-install -d $RPM_BUILD_ROOT%{_javadir}/%{name}
+install -d $RPM_BUILD_ROOT{%{_bindir},%{_datadir}/%{name}/{lib,sc-bundles},%{_libdir}/%{name}}
 
-install -d $RPM_BUILD_ROOT%{_javadir}/%{name}/sc-bundles
-cp -p sc-bundles/*.jar $RPM_BUILD_ROOT%{_javadir}/%{name}/sc-bundles
+cp -p sc-bundles/*.jar $RPM_BUILD_ROOT%{_datadir}/%{name}/sc-bundles
+cp -p sc-bundles/os-specific/linux/*.jar $RPM_BUILD_ROOT%{_datadir}/%{name}/sc-bundles
 
-install -d $RPM_BUILD_ROOT%{_javadir}/%{name}/sc-bundles/os-specific
-install -d $RPM_BUILD_ROOT%{_javadir}/%{name}/sc-bundles/os-specific/linux
-cp -p sc-bundles/os-specific/linux/*.jar $RPM_BUILD_ROOT%{_javadir}/%{name}/sc-bundles/os-specific/linux
-
-install -d $RPM_BUILD_ROOT%{_javadir}/%{name}/lib
-cp -p lib/*.jar $RPM_BUILD_ROOT%{_javadir}/%{name}/lib
-
-install -d $RPM_BUILD_ROOT%{_javadir}/%{name}/lib/os-specific/linux
-cp -p lib/os-specific/linux/*.jar $RPM_BUILD_ROOT%{_javadir}/%{name}/lib/os-specific/linux
+cp -p lib/*.jar $RPM_BUILD_ROOT%{_datadir}/%{name}/lib
+cp -p lib/logging.properties lib/felix.client.run.properties $RPM_BUILD_ROOT%{_datadir}/%{name}/lib
+cp -p lib/os-specific/linux/*.jar $RPM_BUILD_ROOT%{_datadir}/%{name}/lib
 
 ## arch dependant libs
 install -d $RPM_BUILD_ROOT%{_libdir}
 %ifarch %{x8664}
-install -p lib/native/linux-64/* $RPM_BUILD_ROOT%{_libdir}
+install -p lib/native/linux-64/* $RPM_BUILD_ROOT%{_libdir}/%{name}
 %endif
 %ifarch %{ix86}
-install -p lib/native/linux/* $RPM_BUILD_ROOT%{_libdir}
+install -p lib/native/linux/* $RPM_BUILD_ROOT%{_libdir}/%{name}
 %endif
 
-install -d $RPM_BUILD_ROOT%{_bindir}
-install -p %{SOURCE2} $RPM_BUILD_ROOT%{_bindir}/%{name}
+install -p %{name}.sh $RPM_BUILD_ROOT%{_bindir}/%{name}
 
-# Icon
-install -D -p resources/install/linux/sc-logo.png $RPM_BUILD_ROOT%{_pixmapsdir}/%{name}.png
-install -D -p resources/images/logo/sc_logo.svg $RPM_BUILD_ROOT%{_pixmapsdir}/%{name}.svg
-
-# Desktop menu entry
-install -d $RPM_BUILD_ROOT%{_desktopdir}
+# Desktop Entry
+install -d $RPM_BUILD_ROOT{%{_desktopdir},%{_pixmapsdir}}
+cp -p resources/install/linux/sc-logo.png $RPM_BUILD_ROOT%{_pixmapsdir}/%{name}.png
+cp -p resources/images/logo/sc_logo.svg $RPM_BUILD_ROOT%{_pixmapsdir}/%{name}.svg
 cp -p %{SOURCE1} $RPM_BUILD_ROOT%{_desktopdir}/%{name}.desktop
 
 %clean
@@ -90,11 +96,9 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(644,root,root,755)
 %doc README LICENSE
 %attr(755,root,root) %{_bindir}/%{name}
-%attr(755,root,root) %{_libdir}/lib*.so
-%attr(755,root,root) %{_libdir}/mozembed-linux-gtk1.2
-%attr(755,root,root) %{_libdir}/mozembed-linux-gtk2
-%dir %{_javadir}/%{name}
-%{_javadir}/%{name}/*
+%dir %{_libdir}/%{name}
+%attr(755,root,root) %{_libdir}/%{name}/lib*.so
+%{_datadir}/%{name}
 %{_desktopdir}/%{name}.desktop
 %{_pixmapsdir}/%{name}.png
 %{_pixmapsdir}/%{name}.svg
