@@ -12,19 +12,21 @@ LIBDIR=/usr/lib/jitsi
 APPDIR=/usr/share/jitsi
 MAIN_CLASS=net.java.sip.communicator.launcher.SIPCommunicator
 
-for jar in $APPDIR/lib/*.jar; do
+cd "$APPDIR"
+
+for jar in lib/*.jar; do
 	CLASSPATH=$CLASSPATH:$jar
 done
 for jar in sc-launcher.jar util.jar; do
-	CLASSPATH=$CLASSPATH:$APPDIR/sc-bundles/$jar
+	CLASSPATH=$CLASSPATH:sc-bundles/$jar
 done
 
 # extra JVM options
 OPTIONS="\
 	-Djna.library.path=$LIBDIR \
 	-Djava.library.path=$LIBDIR \
-	-Dfelix.config.properties=file:$APPDIR/lib/felix.client.run.properties \
-	-Djava.util.logging.config.file=$APPDIR/lib/logging.properties \
+	-Dfelix.config.properties=file:lib/felix.client.run.properties \
+	-Djava.util.logging.config.file=lib/logging.properties \
 "
 
 run "$@"
