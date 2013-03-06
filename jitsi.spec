@@ -1,23 +1,26 @@
 # TODO
 # - ensure all is really built
 # - cc/cflags for native build (find source first (currently prebuild libs used))
-%define		subver	3464
-%define		rel		0.11
-Summary:	A Java VoIP and Instant Messaging client
+#   - currently packages bundled libs: libcrypto.so.1.0.0(OPENSSL_1.0.0)(64bit) is needed by jitsi-2.0-0.4506.10553.0.1.x86_64
+# - sync with resources/install/rpm/SPECS/jitsi.spec
+%define		subver	4506.10553
+%define		rel		0.1
+Summary:	Open Source Video Calls and Chat
 Name:		jitsi
-Version:	1.0
+Version:	2.0
 Release:	0.%{subver}.%{rel}
 License:	LGPL 2.1
 Group:		Applications/Communications
 URL:		http://www.jitsi.org/
-Source0:	http://download.jitsi.org/jitsi/src/sip-communicator-src-%{version}-beta1-nightly.build.%{subver}.zip
-# Source0-md5:	7f91e55a23c736e517471f80b4602513
+Source0:	https://download.jitsi.org/jitsi/src/%{name}-src-%{version}.%{subver}.zip
+# Source0-md5:	5d79c2c5e71be44fabd9dec45a4c1d52
+# TODO use resources/install/debian/jitsi.desktop.tmpl
 Source1:	%{name}.desktop
+# TODO: sync with resources/install/debian/jitsi.sh.tmpl
 Source2:	%{name}.sh
 Patch0:		dbus-lib64.patch
 Patch1:		jawt-link.patch
 BuildRequires:	ant
-BuildRequires:	ant-nodeps
 BuildRequires:	jdk
 BuildRequires:	sed >= 4.0
 BuildRequires:	unzip
@@ -29,19 +32,19 @@ Obsoletes:	sip-communicator
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
-Jitsi (SIP Communicator) is an audio/video Internet phone and instant
-messenger that supports some of the most popular instant messaging and
-telephony protocols such as SIP, Jabber, AIM/ICQ, MSN, Yahoo!
-Messenger, Bonjour, IRC, RSS and soon others like IAX.
+Jitsi is an audio/video Internet phone and instant messenger that
+supports some of the most popular instant messaging and telephony
+protocols such as SIP, Jabber, AIM/ICQ, MSN, Yahoo! Messenger,
+Bonjour, RSS and counting.
 
-Jitsi (SIP Communicator) is completely Open Source / Free Software,
-and is freely available under the terms of the GNU Lesser General
-Public License.
+Jitsi is completely Open Source / Free Software, and is freely
+available under the terms of the GNU Lesser General Public License.
 
 %prep
-%setup -q -n sip-communicator
-%patch0 -p1
-%patch1 -p1
+%setup -qc
+mv jitsi/* .
+#%patch0 -p1
+#%patch1 -p1
 
 install -p %{SOURCE2} .
 %if "%{_lib}" != "lib"
@@ -66,19 +69,25 @@ cp -p resources/install/doc/License.txt LICENSE
 
 %build
 %{__sed} -e 's,_PACKAGE_NAME_,%{name},g;s,_APP_NAME_,%{name},g' \
-	resources/install/debian/sip-communicator.1.tmpl > %{name}.1
+	resources/install/debian/jitsi.1.tmpl > %{name}.1
+
+# copy the launcher script
+cp resources/install/debian/jitsi.sh.tmpl $RPM_BUILD_ROOT%{_bindir}/jitsi
+sed -i -e "s/_PACKAGE_NAME_/jitsi/" $RPM_BUILD_ROOT/usr/bin/jitsi
 
 #      TODO 'ant ffmpeg' to compile ffmpeg shared library
 #      TODO 'ant portaudio' to compile jnportaudio shared library
 #      TODO 'ant speex' to compile jspeex shared library
 
+%if 0
 %ant \
 	screencapture jawtrenderer g722 hid hwaddressretriever \
 	video4linux2 galagonotification
+%endif
 
 # source code not US-ASCII
 export LC_ALL=en_US
-%ant rebuild
+%ant -Dlabel=%{subver} rebuild
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -87,13 +96,17 @@ install -d $RPM_BUILD_ROOT{%{_bindir},%{_mandir}/man1,%{_datadir}/%{name}/{lib,s
 cp -p sc-bundles/*.jar $RPM_BUILD_ROOT%{_datadir}/%{name}/sc-bundles
 cp -p sc-bundles/os-specific/linux/*.jar $RPM_BUILD_ROOT%{_datadir}/%{name}/sc-bundles
 
+# remove all slicks
+%{__rm} $RPM_BUILD_ROOT%{_datadir}/%{name}/sc-bundles/*-slick.jar
+%{__rm} $RPM_BUILD_ROOT%{_datadir}/%{name}/sc-bundles/slick*.jar
+
 cp -p lib/*.jar $RPM_BUILD_ROOT%{_datadir}/%{name}/lib
 cp -a lib/bundle $RPM_BUILD_ROOT%{_datadir}/%{name}/lib
 rm $RPM_BUILD_ROOT%{_datadir}/%{name}/lib/bundle/junit.jar
-cp -p lib/logging.properties lib/felix.client.run.properties $RPM_BUILD_ROOT%{_datadir}/%{name}/lib
 cp -p lib/os-specific/linux/*.jar $RPM_BUILD_ROOT%{_datadir}/%{name}/lib
+cp -p resources/install/logging.properties lib/felix.client.run.properties $RPM_BUILD_ROOT%{_datadir}/%{name}/lib/
 
-## arch dependant libs
+# arch dependant libs
 install -d $RPM_BUILD_ROOT%{_libdir}
 %ifarch %{x8664}
 install -p lib/native/linux-64/*.so $RPM_BUILD_ROOT%{_libdir}/%{name}
