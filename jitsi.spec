@@ -43,8 +43,8 @@ available under the terms of the GNU Lesser General Public License.
 %prep
 %setup -qc
 mv jitsi/* .
-#%patch0 -p1
-#%patch1 -p1
+#%%patch0 -p1
+#%%patch1 -p1
 
 install -p %{SOURCE2} .
 %if "%{_lib}" != "lib"
